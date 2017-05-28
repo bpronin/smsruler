@@ -16,13 +16,13 @@ import java.util.function.Consumer;
  */
 public class Main {
 
+    //+79516623600
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String PORT = "COM3";
     private final Api api;
 
-    private Main() {
-        api = new Api(PORT);
+    private Main(String port) {
+        api = new Api(port);
         api.addListener(new ApiListener() {
 
             @Override
@@ -43,24 +43,23 @@ public class Main {
     }
 
     private void run() throws Exception {
-//        api.open();
-//        log.info("Running");
+        api.open();
+        log.info("Listening port: " + api.getPort());
 
 //        api.info();
 //        api.listMessages();
 //        api.sendMessage("+79052309441", "This is a test message from sms ruler");
-//        Thread.sleep(500);
-
-//        readConsole();
-//        api.close();
-        Message message = new Message();
-        message.setText("echo");
-        execute(message, System.out::println);
+//        Message message = new Message();
+//        message.setText("echo");
+//        execute(message, System.out::println);
+//        Thread.sleep(2000);
+        readConsole();
+        api.close();
     }
 
     private void handelMessages(List<Message> messages) {
         for (Message message : messages) {
-            if (message.isRead()) {
+            if (!message.isRead()) {
                 execute(message, status -> reply(message, status));
             }
         }
@@ -73,7 +72,9 @@ public class Main {
     }
 
     private void reply(Message message, String status) {
-        api.sendMessage(message.getPhone(), status + ": " + message.getText());
+        String response = status + ": " + message.getText();
+        log.info("Reply: " + response);
+        api.sendMessage(message.getPhone(), response);
     }
 
     private void readConsole() {
@@ -89,7 +90,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        new Main().run();
+        new Main(args[0]).run();
     }
 
 }

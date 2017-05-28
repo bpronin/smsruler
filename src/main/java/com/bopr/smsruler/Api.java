@@ -25,10 +25,14 @@ public class Api {
     private SerialPort port;
     private String portName;
     private ApiListener listener;
-    private String lastResponse;
+    private String predResponse;
 
     public Api(String portName) {
         this.portName = portName;
+    }
+
+    public String getPort() {
+        return port.getPortName();
     }
 
     public void open() throws SerialPortException {
@@ -83,38 +87,41 @@ public class Api {
         if (response.startsWith("+CMTI")) {
             int messageId = Integer.valueOf(response.split(",")[1]); /* "+CMTI: \"ME\",0" */
             listener.onMessageReceived(messageId);
-        } else if (lastResponse != null) {
-            if (lastResponse.equals("ATI")) {
-                listener.onInfo(response);
-                lastResponse = null;
-            } else if (lastResponse.startsWith("AT+CMGL")) {
-                listener.onListMessages(parseMessages(response));
-                lastResponse = null;
-            } else {
-                log.debug("Unhandled: " + response);
-                System.err.println("Unhandled: " + lastResponse);
-                lastResponse = null;
-            }
+        } else if (response.startsWith("+CMGL")) {
+            listener.onListMessages(parseMessages(response));
+        } else if (response.startsWith("+CMGS")) {
+            log.debug("Message sent");
+        } else if (response.startsWith(">")) {
+            log.debug("Prompt");
+        } else if (response.startsWith("OK")) {
+            log.debug("OK");
+        } else if (response.startsWith("ERROR")) {
+            log.debug("ERROR");
+        } else {
+            log.warn("Unhandled: " + response);
         }
-        lastResponse = response;
     }
 
     private List<Message> parseMessages(String response) {
         List<Message> list = new ArrayList<>();
-        String[] lines = response.split("\r\n");
+        try {
+            String[] lines = response.split("\r\n");
 
-        for (int i = 0; i < lines.length && !lines[i].isEmpty(); i++) {
-            String[] fields = lines[i].split(",");
+            for (int i = 0; i < lines.length && !lines[i].isEmpty(); i++) {
+                String[] fields = lines[i].split(",");
 
-            Message message = new Message();
-            message.setId(Integer.valueOf(fields[0].split(":")[1].trim()));
-            message.setRead(!fields[1].contains("UNREAD"));
-            message.setPhone(unquote(fields[2].trim()));
-            message.setDate(unquote(fields[4].trim()));
-            message.setTime(unquote(fields[5].trim()));
-            message.setText(lines[++i].trim());
+                Message message = new Message();
+                message.setId(Integer.valueOf(fields[0].split(":")[1].trim()));
+                message.setRead(!fields[1].contains("UNREAD"));
+                message.setPhone(unquote(fields[2].trim()));
+                message.setDate(unquote(fields[4].trim()));
+                message.setTime(unquote(fields[5].trim()));
+                message.setText(lines[++i].trim());
 
-            list.add(message);
+                list.add(message);
+            }
+        } catch (Throwable x) {
+            log.error("Message parsing error", x);
         }
         return list;
     }
@@ -130,12 +137,26 @@ public class Api {
         return result;
     }
 
-    private String read() throws SerialPortException {
-        return port.readString();
+    private String read(int count) throws SerialPortException {
+        return port.readString(count)
+                //      .trim()
+                //      .replaceAll("\r\n","<cr>")
+                ;
     }
+
+//     private String read() throws SerialPortException {
+//        StringBuilder sb = new StringBuilder();
+//        String line = port.readString();
+//        while (line != null) {
+//            sb.append(line);
+//            line = port.readString();
+//        }
+//        return sb.toString();
+//    }
 
     private void write(String command) throws SerialPortException {
         port.writeString(command + "\r");
+        log.debug("Sent:\n---\n" + command + "\n---");
     }
 
     public void addListener(ApiListener listener) {
@@ -144,15 +165,21 @@ public class Api {
 
     private class SerialPortListener implements SerialPortEventListener {
 
+        private StringBuilder builder = new StringBuilder();
+
         @Override
         public void serialEvent(SerialPortEvent e) {
-            log.info("Port event: " + e.getEventType());
+            log.debug("Port event type: " + e.getEventType() + " value: " + e.getEventValue());
             if (e.getEventType() == SerialPortEvent.RXCHAR) {
                 try {
-                    String response = read();
-                    log.info(response);
-                    if (response != null && !response.isEmpty()) {
-                        dispatch(response.trim());
+                    String chunk = read(e.getEventValue());
+                    builder.append(chunk);
+//                    System.err.println(chunk);
+                    if (chunk.endsWith("\r\nOK\r\n")) {
+                        String response = builder.toString().trim();
+                        builder = new StringBuilder();
+                        log.debug("Received:\n---\n" + response + "\n---");
+                        dispatch(response);
                     }
                 } catch (SerialPortException x) {
                     log.error("Invalid response", x);

@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  */
 public class ProcessTask implements Runnable {
 
-    private static final long TIMEOUT = 10000;
+    private static final long TIMEOUT = 1000;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -52,7 +52,7 @@ public class ProcessTask implements Runnable {
     }
 
     private String formatCommand(String command) {
-        return "cmd /c start " + command + ".bat";
+        return "cmd /c start /B " + command + ".bat";
     }
 
 }
