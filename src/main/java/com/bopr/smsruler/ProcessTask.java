@@ -42,20 +42,20 @@ public class ProcessTask implements Runnable {
             }
 
             if (elapsed <= TIMEOUT) {
-                callback.accept("Executed (" + process.exitValue() + ")");
+                callback.accept("Command executed with code " + process.exitValue());
             } else {
                 process.destroy();
                 log.error("Timeout expired");
-                callback.accept("Timeout expired");
+                callback.accept("Cannot execute command. Timeout expired");
             }
         } catch (Exception x) {
             log.error("Cannot execute command", x);
-            callback.accept(x.getMessage());
+            callback.accept("Exception raised when executing");
         }
     }
 
     private String formatCommand(String text) throws Exception {
-        Matcher matcher = Pattern.compile("\\[(.*?)]").matcher(text);
+        Matcher matcher = Pattern.compile("\\((.*?)\\)").matcher(text);
         if (matcher.find()) {
             return "cmd /c " + matcher.group(1);
         } else {

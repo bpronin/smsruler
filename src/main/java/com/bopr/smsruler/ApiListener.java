@@ -18,6 +18,6 @@ public abstract class ApiListener {
     void onMessageReceived(int messageId) {
     }
 
-    void onListMessages(List<Message> messages) {
+    void onMessagesRead(List<Message> messages) {
     }
 }

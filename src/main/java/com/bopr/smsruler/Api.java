@@ -64,6 +64,11 @@ public class Api {
         send("AT+CMGL=\"ALL\"");
     }
 
+    public void readMessage(int id) {
+        send("AT+CMGF=1");
+        send("AT+CMGR=" + id);
+    }
+
     public void sendMessage(String phone, String text) {
         send("AT+CMGF=1");
         send("AT+CMGS=\"" + phone + "\"");
@@ -96,6 +101,8 @@ public class Api {
                     i = handleATI(lines, i);
                 } else if (line.startsWith("AT+CMGL")) {
                     i = handleCMGL(lines, i);
+                } else if (line.startsWith("AT+CMGR")) {
+                    i = handleCMGR(lines, i);
                 } else if (line.startsWith("+CMTI")) {
                     handleCMTI(line);
                 } else if (line.startsWith("+CMGS")) {
@@ -148,6 +155,36 @@ public class Api {
         return i;
     }
 
+    private int handleCMGR(String[] lines, int start) {
+        int i = 0;
+        try {
+            List<Message> list = new ArrayList<>();
+            i = start;
+            i++;
+            while (i < lines.length && !lines[i].equals("OK")) {
+                if (!lines[i].isEmpty()) {
+                    String[] fields = lines[i].split(",");
+
+                    Message message = new Message();
+                    message.setRead(!fields[0].contains("UNREAD"));
+                    message.setPhone(unquote(fields[1].trim()));
+                    message.setDate(unquote(fields[3].trim()));
+                    message.setTime(unquote(fields[4].trim()));
+
+                    i++;
+                    message.setText(lines[i].trim());
+
+                    list.add(message);
+                }
+                i++;
+            }
+            listener.onMessagesRead(list);
+        } catch (Throwable x) {
+            log.error("CMGL handle error", x);
+        }
+        return i;
+    }
+
     private int handleCMGL(String[] lines, int start) {
         int i = 0;
         try {
@@ -172,7 +209,7 @@ public class Api {
                 }
                 i++;
             }
-            listener.onListMessages(list);
+            listener.onMessagesRead(list);
         } catch (Throwable x) {
             log.error("CMGL handle error", x);
         }

@@ -32,11 +32,11 @@ public class Main {
 
             @Override
             void onMessageReceived(int messageId) {
-                api.listMessages();
+                api.readMessage(messageId);
             }
 
             @Override
-            void onListMessages(List<Message> messages) {
+            void onMessagesRead(List<Message> messages) {
                 handelMessages(messages);
             }
 
@@ -53,6 +53,7 @@ public class Main {
     private void run() throws Exception {
         api.open();
         log.info("Listening port: " + api.getPort());
+//        api.readMessage(8);
 //        api.listMessages();
 //        api.sendMessage("+79052309441", "This is a test message from sms ruler");
         readConsole();
