@@ -12,6 +12,9 @@ public abstract class ApiListener {
     void onInfo(List<String> info) {
     }
 
+    void onRings(String phone, int count) {
+    }
+
     void onMessageReceived(int messageId) {
     }
 

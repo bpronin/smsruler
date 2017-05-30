@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Class Api.
@@ -28,6 +30,8 @@ public class Api {
     private String portName;
     private ApiListener listener;
     private ExecutorService executor;
+    private final AtomicInteger ringsCount = new AtomicInteger();
+    private final AtomicReference<String> callerPhone = new AtomicReference<>();
 
     public Api(String portName) {
         this.portName = portName;
@@ -82,21 +86,51 @@ public class Api {
 
     private void dispatch(String[] lines) {
         for (int i = 0; i < lines.length; i++) {
-            if (lines[i].startsWith("ATI")) {
-                i = handleATI(lines, i);
-            } else if (lines[i].startsWith("AT+CMGL")) {
-                i = handleCMGL(lines, i);
-            } else if (lines[i].startsWith("+CMGS")) {
-                log.debug("Message sent");
-            } else if (lines[i].endsWith("\r")) {
-                log.debug("COMMAND: " + lines[i]);
-            } else if (lines[i].equals("OK")) {
-                log.debug("OK");
-            } else if (lines[i].equals("ERROR")) {
-                log.debug("ERROR");
-            } else {
-                log.debug("Unhandled: " + lines[i]);
+            String line = lines[i];
+            if (line != null && !line.isEmpty()) {
+                if (line.startsWith("+CLIP")) {
+                    handleCLIP(line);
+                } else if (line.startsWith("STOPRING")) {
+                    handleSTOPRING();
+                } else if (line.startsWith("ATI")) {
+                    i = handleATI(lines, i);
+                } else if (line.startsWith("AT+CMGL")) {
+                    i = handleCMGL(lines, i);
+                } else if (line.startsWith("+CMTI")) {
+                    handleCMTI(line);
+                } else if (line.startsWith("+CMGS")) {
+                    log.debug("Message sent");
+                } else if (line.endsWith("\r")) {
+                    log.debug("COMMAND: " + line);
+                } else if (line.equals("OK")) {
+                    log.debug("OK");
+                } else if (line.equals("ERROR")) {
+                    log.debug("ERROR");
+                } else {
+                    log.debug("Unhandled: " + line);
+                }
             }
+        }
+    }
+
+    private void handleCLIP(String text) {
+        callerPhone.set(unquote(text.split(",")[0].split(":")[1].trim()));
+        ringsCount.incrementAndGet();
+    }
+
+    private void handleSTOPRING() {
+        int count = ringsCount.getAndSet(0);
+        String phone = callerPhone.getAndSet(null);
+        log.debug("Handle " + count + " rings from " + phone);
+        listener.onRings(phone, count);
+    }
+
+    private void handleCMTI(String line) {
+        log.debug("Message received");
+        try {
+            listener.onMessageReceived(Integer.valueOf(line.split(",")[1]));
+        } catch (Throwable x) {
+            log.error("CMTI handle error", x);
         }
     }
 
@@ -115,32 +149,37 @@ public class Api {
     }
 
     private int handleCMGL(String[] lines, int start) {
-        List<Message> list = new ArrayList<>();
-        int i = start;
-        i++;
-        while (i < lines.length && !lines[i].equals("OK")) {
-            if (!lines[i].isEmpty()) {
-                String[] fields = lines[i].split(",");
-
-                Message message = new Message();
-                message.setId(Integer.valueOf(fields[0].split(":")[1].trim()));
-                message.setRead(!fields[1].contains("UNREAD"));
-                message.setPhone(unquote(fields[2].trim()));
-                message.setDate(unquote(fields[4].trim()));
-                message.setTime(unquote(fields[5].trim()));
-
-                i++;
-                message.setText(lines[i].trim());
-
-                list.add(message);
-            }
+        int i = 0;
+        try {
+            List<Message> list = new ArrayList<>();
+            i = start;
             i++;
+            while (i < lines.length && !lines[i].equals("OK")) {
+                if (!lines[i].isEmpty()) {
+                    String[] fields = lines[i].split(",");
+
+                    Message message = new Message();
+                    message.setId(Integer.valueOf(fields[0].split(":")[1].trim()));
+                    message.setRead(!fields[1].contains("UNREAD"));
+                    message.setPhone(unquote(fields[2].trim()));
+                    message.setDate(unquote(fields[4].trim()));
+                    message.setTime(unquote(fields[5].trim()));
+
+                    i++;
+                    message.setText(lines[i].trim());
+
+                    list.add(message);
+                }
+                i++;
+            }
+            listener.onListMessages(list);
+        } catch (Throwable x) {
+            log.error("CMGL handle error", x);
         }
-        listener.onListMessages(list);
         return i;
     }
 
-    private String unquote(String s) {
+    private static String unquote(String s) {
         String result = s;
         if (result.startsWith("\"")) {
             result = result.substring(1);
@@ -182,5 +221,4 @@ public class Api {
             }
         }
     }
-
 }

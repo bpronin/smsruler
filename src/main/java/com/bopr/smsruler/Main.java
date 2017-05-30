@@ -3,6 +3,7 @@ package com.bopr.smsruler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
@@ -39,16 +40,23 @@ public class Main {
             void onListMessages(List<Message> messages) {
                 handelMessages(messages);
             }
+
+            @Override
+            void onRings(String phone, int count) {
+                Message message = new Message();
+                message.setPhone(phone);
+                message.setText("[start " + count + "-rings.bat]");
+                handelMessages(Collections.singletonList(message));
+            }
         });
     }
 
     private void run() throws Exception {
         api.open();
         log.info("Listening port: " + api.getPort());
-
 //        api.info();
 //        api.listMessages();
-        api.sendMessage("+79052309441", "This is a test message from sms ruler");
+//        api.sendMessage("+79052309441", "This is a test message from sms ruler");
         readConsole();
         api.close();
     }
@@ -68,18 +76,20 @@ public class Main {
     }
 
     private void reply(Message message, String status) {
-        String response = status + ": " + message.getText();
-        log.info("Reply: " + response);
-        api.sendMessage(message.getPhone(), response);
+        String phone = message.getPhone();
+        if (phone != null && !phone.isEmpty()) {
+            log.info("Reply: " + status);
+            api.sendMessage(phone, status);
+        } else {
+            log.info("Cannot reply. No phone number");
+        }
     }
 
     private void readConsole() {
         Scanner scanner = new Scanner(System.in);
         while (scanner.hasNext()) {
-            String command = scanner.next().toUpperCase();
-            switch (command) {
+            switch (scanner.next().toUpperCase()) {
                 case "EXIT":
-                case "QQQ":
                     return;
             }
         }

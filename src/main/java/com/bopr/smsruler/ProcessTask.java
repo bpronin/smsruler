@@ -3,8 +3,9 @@ package com.bopr.smsruler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class ProcessTask.
@@ -13,7 +14,7 @@ import java.util.function.Consumer;
  */
 public class ProcessTask implements Runnable {
 
-    private static final long TIMEOUT = 1000;
+    private static final long TIMEOUT = 10000;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -27,13 +28,15 @@ public class ProcessTask implements Runnable {
 
     @Override
     public void run() {
-        String command = message.getText().toLowerCase();
-        log.debug("Executing: " + command);
+        String text = message.getText().toLowerCase();
+        log.debug("Executing: " + text);
         try {
             long start = System.currentTimeMillis();
             long elapsed = 0;
 
-            Process process = Runtime.getRuntime().exec(formatCommand(command));
+            String command = formatCommand(text);
+            log.debug("Executing: " + command);
+            Process process = Runtime.getRuntime().exec(command);
             while (process.isAlive() && (elapsed <= TIMEOUT)) {
                 elapsed = System.currentTimeMillis() - start;
             }
@@ -45,14 +48,19 @@ public class ProcessTask implements Runnable {
                 log.error("Timeout expired");
                 callback.accept("Timeout expired");
             }
-        } catch (IOException x) {
+        } catch (Exception x) {
             log.error("Cannot execute command", x);
             callback.accept(x.getMessage());
         }
     }
 
-    private String formatCommand(String command) {
-        return "cmd /c start /B " + command + ".bat";
+    private String formatCommand(String text) throws Exception {
+        Matcher matcher = Pattern.compile("\\[(.*?)]").matcher(text);
+        if (matcher.find()) {
+            return "cmd /c " + matcher.group(1);
+        } else {
+            throw new Exception("Invalid command");
+        }
     }
 
 }
