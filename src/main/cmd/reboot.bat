@@ -1,3 +1,1 @@
-rem shutdown /r /f /t 5
-echo reboot
-pause
+shutdown /r /f /t 5
