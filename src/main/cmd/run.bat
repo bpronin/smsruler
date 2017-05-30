@@ -1,0 +1,1 @@
+java -jar smsruler-1.0.0.jar COM3
