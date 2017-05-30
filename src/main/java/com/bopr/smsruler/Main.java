@@ -16,8 +16,7 @@ import java.util.function.Consumer;
  * @author Boris Pronin (<a href="mailto:boprsoft.dev@gmail.com">boprsoft.dev@gmail.com</a>)
  */
 public class Main {
-
-    //+79516623600
+    
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final Api api;
@@ -54,7 +53,6 @@ public class Main {
     private void run() throws Exception {
         api.open();
         log.info("Listening port: " + api.getPort());
-//        api.info();
 //        api.listMessages();
 //        api.sendMessage("+79052309441", "This is a test message from sms ruler");
         readConsole();
