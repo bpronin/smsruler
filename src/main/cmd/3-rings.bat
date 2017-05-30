@@ -1,0 +1,1 @@
+call reboot.bat
