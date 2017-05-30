@@ -9,7 +9,7 @@ import java.util.List;
  */
 public abstract class ApiListener {
 
-    void onInfo(String info) {
+    void onInfo(List<String> info) {
     }
 
     void onMessageReceived(int messageId) {

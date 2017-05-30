@@ -26,7 +26,7 @@ public class Main {
         api.addListener(new ApiListener() {
 
             @Override
-            void onInfo(String info) {
+            void onInfo(List<String> info) {
                 System.out.println(info);
             }
 
@@ -48,11 +48,7 @@ public class Main {
 
 //        api.info();
 //        api.listMessages();
-//        api.sendMessage("+79052309441", "This is a test message from sms ruler");
-//        Message message = new Message();
-//        message.setText("echo");
-//        execute(message, System.out::println);
-//        Thread.sleep(2000);
+        api.sendMessage("+79052309441", "This is a test message from sms ruler");
         readConsole();
         api.close();
     }

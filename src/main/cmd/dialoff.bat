@@ -1,0 +1,1 @@
+rasdial "TELE2" /DISCONNECT
