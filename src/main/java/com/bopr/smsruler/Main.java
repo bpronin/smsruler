@@ -28,7 +28,7 @@ public class Main {
 
             @Override
             void onInfo(List<String> info) {
-                System.out.println(info);
+                info.forEach(System.out::println);
             }
 
             @Override
@@ -53,7 +53,8 @@ public class Main {
 
     private void run() throws Exception {
         api.open();
-        log.info("Listening port: " + api.getPort());
+        System.out.println("Listening port: " + api.getPort());
+        api.info();
         readConsole();
         api.close();
     }
