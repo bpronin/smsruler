@@ -3,6 +3,7 @@ package com.bopr.smsruler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
  * @author Boris Pronin (<a href="mailto:boprsoft.dev@gmail.com">boprsoft.dev@gmail.com</a>)
  */
 public class Main {
-    
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final Api api;
@@ -53,9 +54,6 @@ public class Main {
     private void run() throws Exception {
         api.open();
         log.info("Listening port: " + api.getPort());
-//        api.readMessage(8);
-//        api.listMessages();
-//        api.sendMessage("+79052309441", "This is a test message from sms ruler");
         readConsole();
         api.close();
     }
